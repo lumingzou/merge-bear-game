@@ -164,24 +164,23 @@ function physics() {
     b.vy += G;
     b.vx *= DMP;
     b.x += b.vx; b.y += b.vy;
-    b.av *= 0.9; // 角速度快速衰减
-    if (Math.abs(b.av) < 0.001) b.av = 0; // 极小值归零
+    b.av *= 0.85;
+    if (Math.abs(b.av) < 0.002) b.av = 0;
     b.rot += b.av;
 
-    if (b.x - b.r < WALL_L) { b.x = WALL_L + b.r; b.vx = Math.abs(b.vx) * BNC; }
-    if (b.x + b.r > WALL_R) { b.x = WALL_R - b.r; b.vx = -Math.abs(b.vx) * BNC; }
+    if (b.x - b.r < WALL_L) { b.x = WALL_L + b.r; b.vx = Math.abs(b.vx) * BNC; b.av *= 0.3; }
+    if (b.x + b.r > WALL_R) { b.x = WALL_R - b.r; b.vx = -Math.abs(b.vx) * BNC; b.av *= 0.3; }
     if (b.y + b.r > FLOOR) {
       b.y = FLOOR - b.r;
       b.vy = -Math.abs(b.vy) * BNC;
       if (Math.abs(b.vy) < 1) b.vy = 0;
       b.vx *= 0.92;
-      b.av *= 0.5; // 着地时角速度大幅衰减
+      b.av *= 0.3;
     }
     const speed = Math.abs(b.vx) + Math.abs(b.vy);
-    if (speed < 0.5) { b.settled++; b.av *= 0.8; }
+    if (speed < 1) { b.settled++; b.av *= 0.5; }
     else b.settled = 0;
-    // 稳定后停止旋转
-    if (b.settled > 10) { b.av = 0; }
+    if (b.settled > 5) b.av = 0;
   }
 
   for (let iter = 0; iter < 3; iter++) {
@@ -237,8 +236,11 @@ function collide(a, b) {
     const imp = dvn * (1 + BNC);
     a.vx -= imp * mB / mt * nx; a.vy -= imp * mB / mt * ny;
     b.vx += imp * mA / mt * nx; b.vy += imp * mA / mt * ny;
-    a.av += (dvy * nx - dvx * ny) * 0.003;
-    b.av -= (dvy * nx - dvx * ny) * 0.003;
+    // 只在碰撞速度较大时才产生旋转，避免堆叠时微碰撞导致持续转动
+    if (Math.abs(dvn) > 2) {
+      a.av += (dvy * nx - dvx * ny) * 0.002;
+      b.av -= (dvy * nx - dvx * ny) * 0.002;
+    }
   }
 }
 
